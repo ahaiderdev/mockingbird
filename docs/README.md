@@ -16,23 +16,6 @@
 ### Examples
 - **[Configuration Examples](examples/README.md)** - Example configs and patterns
 
----
-
-## 🔧 Developer Documentation
-
-**For contributors and those interested in internals:**
-
-### Architecture
-- [Implementation Summary](architecture/IMPLEMENTATION_SUMMARY.md) - Technical implementation details
-- [Project Status](architecture/PROJECT_STATUS.md) - Current project status and roadmap
-
-### Development Resources
-- [Troubleshooting](development/troubleshooting/) - Historical troubleshooting docs
-- [Analysis](development/analysis/) - Research and analysis documents
-- [History](development/history/) - Change history and summaries
-
----
-
 ## 📖 Quick Links
 
 ### New Users
@@ -68,11 +51,5 @@ docs/
 │   ├── 06-metrics-reference.md
 │   └── 07-deployment.md
 ├── examples/            # Configuration examples
-│   └── README.md
-├── architecture/        # Technical architecture docs
-└── development/         # Development and historical docs
-    ├── troubleshooting/
-    ├── analysis/
-    └── history/
-```
+    └── README.md
 
