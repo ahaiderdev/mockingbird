@@ -52,7 +52,7 @@ The generator will start and expose:
 Run the complete stack with Prometheus, OTEL Collector, and Grafana:
 
 ```bash
-docker-compose up -d
+docker-compose -f compose/docker-compose.yaml up -d
 ```
 
 Access:
@@ -196,7 +196,7 @@ Run identical workloads against different backends:
 
 ```bash
 # Start generator
-docker-compose up -d
+docker-compose -f compose/docker-compose.yaml up -d
 
 # Prometheus scrapes from :8000/metrics
 # OTEL Collector receives push on :4317
@@ -295,14 +295,20 @@ mockingbird/
 │   ├── control_api.py       # FastAPI control endpoints
 │   └── series.py            # Data structures
 ├── configs/
-│   ├── baseline.yaml
-│   ├── high_cardinality.yaml
-│   └── production_sim.yaml
+│   ├── baseline.example.yaml
+│   ├── high_cardinality.example.yaml
+│   └── production_sim.example.yaml
 ├── compose/
+│   ├── docker-compose.yaml  # Docker orchestration
+│   ├── alloy-config.example.alloy
+│   ├── prometheus.example.yml
 │   ├── otel-config.yaml
-│   └── prometheus.yml
+│   └── dashboards/
+├── scripts/
+│   ├── start.sh             # Quick start script
+│   └── run.sh               # Local run script
+├── tests/
 ├── Dockerfile
-├── docker-compose.yaml
 ├── requirements.txt
 └── README.md
 ```
@@ -355,7 +361,7 @@ pytest tests/
 
 Check that the collector is running and accessible:
 ```bash
-docker-compose logs collector
+docker-compose -f compose/docker-compose.yaml logs alloy
 ```
 
 Verify endpoint in config matches collector address.
@@ -381,10 +387,10 @@ gen_tick_duration_seconds{quantile="0.95"}
 
 ### Metrics Not Appearing
 
-1. Check logs for errors: `docker-compose logs generator`
+1. Check logs for errors: `docker-compose -f compose/docker-compose.yaml logs generator`
 2. Verify exporters enabled in config
 3. Check Prometheus targets: http://localhost:9090/targets
-4. Verify OTEL collector receiving: `docker-compose logs collector`
+4. Verify OTEL collector receiving: `docker-compose -f compose/docker-compose.yaml logs alloy`
 
 ## Performance Characteristics
 

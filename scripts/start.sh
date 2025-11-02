@@ -4,7 +4,7 @@
 set -e
 
 echo "=========================================="
-echo "Synthetic Metrics Generator - Docker Setup"
+echo "Mockingbird - Docker Setup"
 echo "=========================================="
 echo ""
 
@@ -26,7 +26,7 @@ echo ""
 
 # Build and start services
 echo "Building and starting services..."
-docker-compose up -d --build
+docker-compose -f compose/docker-compose.yaml up -d --build
 
 echo ""
 echo "Waiting for services to be healthy..."
@@ -35,7 +35,7 @@ sleep 10
 # Check service status
 echo ""
 echo "Service Status:"
-docker-compose ps
+docker-compose -f compose/docker-compose.yaml ps
 
 echo ""
 echo "=========================================="
@@ -53,9 +53,9 @@ echo "  🎛️  Control API:    http://localhost:8081/status"
 echo "  📡 Metrics:        http://localhost:8000/metrics"
 echo ""
 echo "Quick Commands:"
-echo "  View logs:         docker-compose logs -f"
-echo "  Stop services:     docker-compose down"
-echo "  Restart:           docker-compose restart"
+echo "  View logs:         docker-compose -f compose/docker-compose.yaml logs -f"
+echo "  Stop services:     docker-compose -f compose/docker-compose.yaml down"
+echo "  Restart:           docker-compose -f compose/docker-compose.yaml restart"
 echo ""
 echo "Check status:"
 curl -s http://localhost:8081/status | python3 -m json.tool 2>/dev/null || echo "  Waiting for generator to start..."
