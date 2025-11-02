@@ -1,0 +1,110 @@
+# Realistic Production Simulation Configuration
+# This configuration simulates realistic production workload patterns
+# with moderate cardinality and varied metric types.
+#
+# This config demonstrates:
+# - Diurnal traffic patterns
+# - Mixed latency distributions (fast + slow requests)
+# - Realistic label cardinality
+# - Multiple metric types
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file: cp production_sim.example.yaml production_sim.yaml
+# 2. Update the OTEL endpoint
+# 3. Adjust service/instance counts for your simulation needs
+
+global:
+  tick_interval_s: 1          # Real-time generation
+  seed: 7                     # Reproducible patterns
+  log_level: INFO
+  log_format: text
+  control_api_port: 8081
+
+exporters:
+  prometheus:
+    enabled: true
+    port: 8000
+    prefix: "synthetic_prom_"
+  
+  otel:
+    enabled: true
+    endpoint: "localhost:4317"  # CHANGE THIS: Your OTEL collector endpoint
+    insecure: true
+    prefix: "synthetic_otel_"
+    export_interval_s: 10
+    resource:
+      service.name: synthetic-metrics-generator
+      deployment.environment: production-sim
+
+profiles:
+  app:
+    labels:
+      service:
+        values: ["api", "worker", "frontend"]  # 3 services
+      instance:
+        range: [1, 20]                          # 20 instances per service
+        fmt: "i-%02d"
+      az:
+        values: ["a", "b", "c"]                 # 3 availability zones
+    series_cap: 10000                           # Reasonable limit
+
+metrics:
+  # Counter: HTTP request count with status codes
+  - name: http_requests_total
+    type: counter
+    profile: app
+    algorithm: poisson
+    base_rate: 20               # 20 req/s average per series
+    diurnal_amp: 0.35           # 35% daily variation (simulates traffic patterns)
+    labels:
+      route:
+        values: ["/", "/login", "/search", "/checkout", "/api/*"]  # 5 routes
+      status:
+        values: ["200", "400", "500"]  # 3 status codes
+    # Series: 3 services × 20 instances × 3 AZs × 5 routes × 3 statuses = 2,700
+  
+  # Histogram: Request latency with bimodal distribution
+  - name: http_request_duration_seconds
+    type: histogram
+    profile: app
+    buckets: [0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1, 2, 5]
+    algorithm: mixture          # Bimodal: fast + slow requests
+    components:
+      - type: lognormal
+        weight: 0.9             # 90% fast requests (~50ms)
+        mu: -3.0
+        sigma: 0.6
+      - type: lognormal
+        weight: 0.1             # 10% slow requests (~600ms)
+        mu: -0.5
+        sigma: 0.8
+    # Series: 3 × 20 × 3 × 10 buckets = 1,800 histogram series
+  
+  # Gauge: Queue depth with sawtooth pattern
+  - name: queue_depth
+    type: gauge
+    profile: app
+    algorithm: sawtooth         # Linear ramp up, then reset
+    min: 0
+    max: 1000
+    period_s: 600               # 10-minute cycle
+    # Series: 3 × 20 × 3 = 180
+  
+  # Summary: Response size distribution
+  - name: response_size_bytes
+    type: summary
+    profile: app
+    objectives:
+      0.5: 0.01                 # p50 with 1% error
+      0.9: 0.01                 # p90 with 1% error
+      0.99: 0.001               # p99 with 0.1% error
+    algorithm: lognormal
+    mu: 8.5                     # ~5KB average response
+    sigma: 1.1
+    # Series: 3 × 20 × 3 × 5 (quantiles + sum + count) = 900
+
+# Total series: ~5,500
+# Memory usage: ~500MB
+# Tick duration: ~50ms
+# Simulates: Medium-sized production service with realistic patterns
+

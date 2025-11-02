@@ -1,0 +1,86 @@
+# High Cardinality Stress Test Configuration
+# This configuration generates high cardinality metrics to test
+# backend performance under stress.
+#
+# WARNING: This config generates 100k+ time series!
+# Ensure your system has adequate resources:
+# - Memory: 2.5GB+ RAM
+# - CPU: Multi-core recommended
+# - Backend: Configured for high cardinality
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file: cp high_cardinality.example.yaml high_cardinality.yaml
+# 2. Update the OTEL endpoint
+# 3. Adjust series_cap based on your system capacity
+
+global:
+  tick_interval_s: 1          # Generate metrics every second
+  seed: 123                   # Different seed from baseline
+  log_level: INFO
+  log_format: text
+  control_api_port: 8081
+
+exporters:
+  prometheus:
+    enabled: true
+    port: 8000
+    prefix: "synthetic_prom_"
+  
+  otel:
+    enabled: true
+    endpoint: "localhost:4317"  # CHANGE THIS: Your OTEL collector endpoint
+    insecure: true
+    prefix: "synthetic_otel_"
+    export_interval_s: 10
+    resource:
+      service.name: synthetic-metrics-generator
+      deployment.environment: stress-test
+
+profiles:
+  high:
+    labels:
+      user_id:
+        range: [1, 100000]      # 100,000 unique users
+        fmt: "user_%05d"        # Format: user_00001, user_00002, ...
+      endpoint:
+        values: ["/api/a", "/api/b", "/api/c", "/api/d", "/api/e"]  # 5 endpoints
+      region:
+        values: ["us-east-1", "eu-west-1", "ap-south-1"]  # 3 regions
+    series_cap: 150000          # Cap at 150k series (out of 1.5M possible)
+    sampling_strategy: hash     # Deterministic sampling via hash
+
+metrics:
+  # Counter: Per-user request count
+  - name: user_requests_total
+    type: counter
+    profile: high
+    algorithm: poisson
+    base_rate: 0.2              # Lower rate per series (high volume overall)
+    diurnal_amp: 0.1
+    # Potential series: 100k users × 5 endpoints × 3 regions = 1.5M
+    # Actual series: Limited by series_cap (150k)
+  
+  # Histogram: Per-user latency
+  - name: user_latency_seconds
+    type: histogram
+    profile: high
+    buckets: [0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64]
+    algorithm: lognormal
+    mu: -4.0                    # ~18ms average
+    sigma: 0.8
+    # Series: 150k × 9 buckets = 1.35M histogram series
+  
+  # Gauge: Per-user cache hit (binary)
+  - name: user_cache_hit
+    type: gauge
+    profile: high
+    algorithm: bernoulli
+    p: 0.9                      # 90% cache hit rate
+    # Series: 150k gauge series
+
+# Performance characteristics (M1 MacBook Pro, 16GB RAM):
+# - Total series: ~150k
+# - Memory usage: ~2.5GB
+# - Tick duration (p95): ~800ms
+# - Export queue depth: Monitor gen_export_queue_depth metric
+

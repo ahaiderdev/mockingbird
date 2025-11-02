@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  external_labels:
+    cluster: 'local'
+    environment: 'dev'
+
+# Remote write to Grafana Cloud (OPTIONAL)
+# Uncomment and configure if you want to send metrics to Grafana Cloud
+# remote_write:
+#   - url: https://prometheus-prod-<REGION>.grafana.net/api/prom/push
+#     basic_auth:
+#       username: <YOUR_GRAFANA_CLOUD_PROMETHEUS_USERNAME>  # CHANGE THIS
+#       password: <YOUR_GRAFANA_CLOUD_API_TOKEN>            # CHANGE THIS
+#     # Only send synthetic_prom_* metrics (exclude Prometheus internal metrics)
+#     write_relabel_configs:
+#       - source_labels: [__name__]
+#         regex: 'synthetic_prom_.*'
+#         action: keep
+#     # Optimize for faster delivery
+#     queue_config:
+#       batch_send_deadline: 5s      # Send batch every 5 seconds
+#       max_samples_per_send: 500    # Smaller batches
+#       min_shards: 1                # Start with 1 shard
+#       max_shards: 5                # Scale up if needed
+
+scrape_configs:
+  # Scrape the synthetic metrics generator
+  - job_name: 'synthetic-metrics-generator'
+    static_configs:
+      - targets: ['generator:8000']
+        labels:
+          service: 'metrics-generator'
+    scrape_interval: 5s  # Scrape more frequently for testing
+  
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+# NOTES:
+# - The generator exposes metrics at :8000/metrics
+# - Adjust scrape_interval based on your testing needs
+# - For remote_write to Grafana Cloud:
+#   1. Get credentials from Grafana Cloud → Connections → Prometheus
+#   2. Replace <YOUR_*> placeholders
+#   3. Uncomment the remote_write section
+

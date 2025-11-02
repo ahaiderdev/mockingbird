@@ -1,0 +1,148 @@
+// Grafana Alloy configuration for OTLP metrics collection
+// This is an EXAMPLE configuration with credentials masked
+//
+// SETUP INSTRUCTIONS:
+// 1. Copy this file: cp alloy-config.example.alloy alloy-config.alloy
+// 2. Replace <YOUR_*> placeholders with your actual credentials
+// 3. Update endpoints to match your observability backends
+
+// Enable live debugging
+livedebugging {
+  enabled = true
+}
+
+// OTLP receiver - receives metrics from the generator
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [
+      otelcol.processor.batch.grafana.input,
+      otelcol.processor.transform.normalize.input,
+    ]
+  }
+}
+
+// Batch processor for Grafana Cloud (native OTEL metrics only)
+otelcol.processor.batch "grafana" {
+  timeout = "5s"
+  send_batch_size = 500
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+// OTLP HTTP exporter - send to Grafana Cloud
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = "https://otlp-gateway-prod-<REGION>.grafana.net/otlp"  // CHANGE THIS: Your region
+    
+    auth = otelcol.auth.basic.grafana_cloud.handler
+    
+    compression = "gzip"
+  }
+}
+
+// Basic auth for Grafana Cloud
+otelcol.auth.basic "grafana_cloud" {
+  username = "<YOUR_GRAFANA_CLOUD_INSTANCE_ID>"  // CHANGE THIS: Your instance ID
+  password = "<YOUR_GRAFANA_CLOUD_API_TOKEN>"    // CHANGE THIS: Your API token
+}
+
+// OTLP HTTP exporter - send to SigNoz Cloud (OPTIONAL)
+otelcol.exporter.otlphttp "signoz_cloud" {
+  client {
+    endpoint = "https://ingest.<REGION>.signoz.cloud:443"  // CHANGE THIS: Your region
+    
+    headers = {
+      "signoz-access-token" = "<YOUR_SIGNOZ_ACCESS_TOKEN>",  // CHANGE THIS
+    }
+    
+    compression = "gzip"
+  }
+}
+
+// Transform processor - normalize metric names (underscores to dots)
+// This ensures consistent dot notation in SigNoz
+otelcol.processor.transform "normalize" {
+  error_mode = "ignore"
+  
+  metric_statements {
+    context = "metric"
+    statements = [
+      `replace_pattern(metric.name, "_", ".")`,
+    ]
+  }
+  
+  output {
+    metrics = [otelcol.processor.batch.signoz.input]
+  }
+}
+
+// Batch processor for SigNoz (both native OTEL and converted Prometheus)
+otelcol.processor.batch "signoz" {
+  timeout = "5s"
+  send_batch_size = 500
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.signoz_cloud.input]
+  }
+}
+
+// ============================================================================
+// Prometheus Scrape Pipeline (Generator → Alloy → OTEL → SigNoz only)
+// ============================================================================
+
+// Prometheus receiver - scrape Prometheus metrics from generator
+prometheus.scrape "generator" {
+  targets = [{
+    __address__ = "generator:8000",
+  }]
+  
+  forward_to = [prometheus.relabel.filter_synthetic.receiver]
+  
+  scrape_interval = "10s"
+  scrape_timeout = "5s"
+}
+
+// Filter to only keep synthetic_prom_* metrics
+prometheus.relabel "filter_synthetic" {
+  forward_to = [otelcol.receiver.prometheus.generator.receiver]
+  
+  rule {
+    source_labels = ["__name__"]
+    regex = "synthetic_prom_.*"
+    action = "keep"
+  }
+}
+
+// Convert Prometheus metrics to OTEL format
+otelcol.receiver.prometheus "generator" {
+  output {
+    metrics = [otelcol.processor.batch.prom_to_signoz.input]
+  }
+}
+
+// Batch processor for converted Prometheus metrics - sends to batch.signoz (bypasses transform)
+otelcol.processor.batch "prom_to_signoz" {
+  timeout = "10s"
+  send_batch_size = 500
+
+  output {
+    metrics = [otelcol.processor.batch.signoz.input]
+  }
+}
+
+// NOTES:
+// - Native OTEL metrics from generator go to both Grafana Cloud and SigNoz
+// - Prometheus metrics are scraped, converted to OTEL, and sent only to SigNoz
+// - Transform processor converts underscores to dots for SigNoz compatibility
+// - Adjust batch sizes and timeouts based on your metric volume
+
