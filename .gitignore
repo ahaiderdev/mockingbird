@@ -67,11 +67,18 @@ compose/prometheus.yml
 !configs/*.example.yaml
 !compose/*.example.yaml
 
-# Documentation (ignore all .md files except root README.md and CHANGELOG.md)
-*.md
-!README.md
-!CHANGELOG.md
-
-# Ignore only development history and architecture docs
+# Documentation - ignore development/architecture docs but keep user docs
 docs/development/
 docs/architecture/
+
+# Ignore all .md files by default
+*.md
+
+# But keep these important ones
+!README.md
+!CHANGELOG.md
+!docs/**/*.md
+
+# Re-ignore development and architecture markdown files
+docs/development/**/*.md
+docs/architecture/**/*.md
