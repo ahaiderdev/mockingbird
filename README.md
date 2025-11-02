@@ -2,7 +2,7 @@
 
 **Sing the metrics you need to hear**
 
-A Python-based synthetic metrics generator for testing and comparing observability backends. Generate realistic, controllable metric workloads to validate Prometheus, OpenTelemetry, and other monitoring systems under varied cardinality and patterns.
+A Python-based synthetic metrics generator for testing and comparing observability backends. Generate realistic, controllable metric workloads to validate Prometheus / OpenTelemetry based monitoring backends under varied cardinality and patterns.
 
 ## ⚠️ Important Disclaimer
 
