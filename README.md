@@ -6,7 +6,7 @@ A Python-based synthetic metrics generator for testing and comparing observabili
 
 ## ⚠️ Important Disclaimer
 
-**This application was generated with assistance from Large Language Models (LLMs) for rapid prototyping and testing purposes.**
+**This application was generated for rapid prototyping and testing purposes.**
 
 - ✅ **Recommended for**: Testing, learning, prototyping, and comparing observability backends
 - ❌ **Not recommended for**: Production deployments without thorough review and hardening
@@ -344,10 +344,6 @@ pytest tests/
   - [Metrics Reference](docs/user-guide/06-metrics-reference.md) - All generated metrics
   - [Deployment](docs/user-guide/07-deployment.md) - Deployment options
 - **[Examples](docs/examples/)** - Configuration examples and patterns
-
-### For Developers
-- **[Architecture](docs/architecture/)** - Technical implementation details
-- **[Development Resources](docs/development/)** - Troubleshooting, analysis, and history
 
 **Quick Links**:
 - 🚀 [Getting Started Guide](docs/user-guide/02-getting-started.md)
